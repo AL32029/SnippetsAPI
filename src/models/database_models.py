@@ -17,6 +17,7 @@ class UserORM(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
 
     snippets: Mapped[list["SnippetORM"]] = relationship(
+        "SnippetORM",
         back_populates="user",
         cascade="all, delete-orphan",
         passive_deletes=True,
@@ -32,4 +33,4 @@ class SnippetORM(Base):
     )
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
 
-    user: Mapped["UserORM"] = relationship(back_populates="snippets")
+    user: Mapped["UserORM"] = relationship("UserORM", back_populates="snippets")
