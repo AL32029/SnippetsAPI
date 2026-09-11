@@ -28,5 +28,10 @@ dev = [
     "alembic (>=1.19.2,<2.0.0)"
 ]
 
+[tool.ruff]
+exclude = [
+    "**/migrations/*",
+]
+
 [tool.ruff.lint]
 select = ["E", "F", "I", "W", "C", "N", "UP", "B", "A", "SIM", "ARG", "PT"]
