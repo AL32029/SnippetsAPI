@@ -7,7 +7,7 @@ class CryptoSettings(BaseSettings):
 
     ALGORITHM: str = Field("HS256")
 
-    JWT_SECRET_KEY: str = Field(min_length=1)
+    JWT_SECRET_KEY: str = Field(min_length=32)
 
 
 crypto_settings = CryptoSettings()
