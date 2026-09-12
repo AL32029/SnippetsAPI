@@ -14,8 +14,9 @@ dependencies = [
     "asyncpg (>=0.31.0,<0.32.0)",
     "uvicorn (>=0.52.4,<0.53.0)",
     "cryptography (>=50.0.1,<51.0.0)",
-    "bcrypt[cryptography] (>=5.0.0,<6.0.0)",
-    "pyjwt (>=2.14.0,<3.0.0)"
+    "bcrypt (==4.0.1)",
+    "pyjwt (>=2.14.0,<3.0.0)",
+    "passlib[bcrypt] (>=1.7.4,<2.0.0)"
 ]
 
 [build-system]
