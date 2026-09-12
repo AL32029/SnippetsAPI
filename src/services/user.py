@@ -1,4 +1,3 @@
-from typing import cast
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,10 +17,12 @@ class UserService:
         email: str,
         password: str,
     ):
+        hashed_password = await self.crypto.hash_password_async(password)
+
         user = UserORM(
             name=name,
             email=email,
-            password_hash=self.crypto.hash_password(password),
+            password_hash=hashed_password,
         )
 
         self.db.add(user)
@@ -34,10 +35,10 @@ class UserService:
         if user is None:
             return None
 
-        if not self.crypto.verify_password(password, user.password_hash):
+        if not await self.crypto.verify_password_async(password, user.password_hash):
             return None
 
-        return cast("UserORM | None", user)
+        return user
 
     async def get_by_email(self, email: str) -> UserORM | None:
         stmt = select(UserORM).where(UserORM.email == email)

@@ -1,5 +1,6 @@
-from .user import user_router
+from api.v1 import auth_router, snippets_router
 
 __all__ = [
-    "user_router",
+    "auth_router",
+    "snippets_router",
 ]

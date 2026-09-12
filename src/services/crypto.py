@@ -3,6 +3,7 @@ from datetime import timedelta
 
 import bcrypt
 import jwt
+from starlette.concurrency import run_in_threadpool
 
 from core.crypto_settings import CryptoSettings
 
@@ -12,17 +13,27 @@ class CryptoService:
         self._algorithm = settings.ALGORITHM
         self._jwt_secret_key = settings.JWT_SECRET_KEY
 
-    def hash_password(self, password: str) -> str:
-        return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    async def hash_password_async(self, password: str) -> str:
+        return await run_in_threadpool(self.hash_password, password)
 
-    def verify_password(self, password: str, hashed: str) -> bool:
-        return bcrypt.checkpw(password.encode(), hashed.encode())
+    async def verify_password_async(self, password: str, hashed: str) -> str:
+        return await run_in_threadpool(self.verify_password, password, hashed)
+
+    async def create_access_token_async(
+        self,
+        data: dict,
+        expired_delta: timedelta = timedelta(minutes=15),
+    ) -> str:
+        return await run_in_threadpool(self.create_access_token, data, expired_delta)
+
+    async def decode_access_token_async(self, token: str) -> dict | None:
+        return await run_in_threadpool(self.decode_access_token, token)
 
     def create_access_token(
         self,
         data: dict,
         expired_delta: timedelta = timedelta(minutes=15),
-    ):
+    ) -> str:
         to_encode = data.copy()
 
         expire_to = (datetime.datetime.now(datetime.UTC) + expired_delta).timestamp()
@@ -38,3 +49,11 @@ class CryptoService:
         except jwt.InvalidTokenError:
             return None
         return data
+
+    @staticmethod
+    def hash_password(password: str) -> str:
+        return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+
+    @staticmethod
+    def verify_password(password: str, hashed: str) -> bool:
+        return bcrypt.checkpw(password.encode(), hashed.encode())
