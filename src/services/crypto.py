@@ -16,7 +16,7 @@ class CryptoService:
     async def hash_password_async(self, password: str) -> str:
         return await run_in_threadpool(self.hash_password, password)
 
-    async def verify_password_async(self, password: str, hashed: str) -> str:
+    async def verify_password_async(self, password: str, hashed: str) -> bool:
         return await run_in_threadpool(self.verify_password, password, hashed)
 
     async def create_access_token_async(
