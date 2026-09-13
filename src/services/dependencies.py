@@ -37,23 +37,7 @@ async def get_current_user(
     crypto_service: Annotated[CryptoService, Depends(get_crypto_service)],
     token: Annotated[str, Depends(oauth_bearer)],
 ) -> UserORM:
-    user_data = await crypto_service.decode_access_token_async(token)
-
-    if user_data is None or "sub" not in user_data or not user_data["sub"]:
-        raise HTTPException(
-            status_code=HTTP_401_UNAUTHORIZED,
-            detail="Invalid session token",
-        )
-
-    user = await user_service.get_by_email(user_data["sub"])
-
-    if user is None:
-        raise HTTPException(
-            status_code=HTTP_401_UNAUTHORIZED,
-            detail="Invalid session token",
-        )
-
-    return user
+    return await _get_user_by_token(user_service, crypto_service, token)
 
 
 async def get_current_user_optional(
@@ -64,6 +48,20 @@ async def get_current_user_optional(
     if token is None:
         return None
 
+    return await _get_user_by_token(user_service, crypto_service, token)
+
+
+def get_snippets_service(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> SnippetsService:
+    return SnippetsService(db=db)
+
+
+async def _get_user_by_token(
+    user_service: UserService,
+    crypto_service: CryptoService,
+    token: str,
+) -> UserORM:
     user_data = await crypto_service.decode_access_token_async(token)
 
     if user_data is None or "sub" not in user_data or not user_data["sub"]:
@@ -81,9 +79,3 @@ async def get_current_user_optional(
         )
 
     return user
-
-
-def get_snippets_service(
-    db: Annotated[AsyncSession, Depends(get_db)],
-) -> SnippetsService:
-    return SnippetsService(db=db)

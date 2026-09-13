@@ -26,7 +26,7 @@ class UserORM(Base):
     name: Mapped[str] = mapped_column(String(64))
     password_hash: Mapped[str] = mapped_column(String(255))
 
-    snippets: Mapped[list["SnippetORM"]] = relationship(
+    snippets: Mapped[list[SnippetORM]] = relationship(
         "SnippetORM",
         back_populates="user",
         cascade="all, delete-orphan",
@@ -44,8 +44,8 @@ class SnippetORM(Base):
     language: Mapped[str] = mapped_column(String(48))
     code: Mapped[str] = mapped_column(Text)
 
-    user: Mapped["UserORM"] = relationship("UserORM", back_populates="snippets")
-    public_urls: Mapped[list["SnippetURLORM"]] = relationship(
+    user: Mapped[UserORM] = relationship("UserORM", back_populates="snippets")
+    public_urls: Mapped[list[SnippetURLORM]] = relationship(
         "SnippetURLORM",
         back_populates="snippet",
         lazy="noload",
@@ -78,7 +78,7 @@ class SnippetURLORM(Base):
         server_default=text("0"),
     )
 
-    snippet: Mapped["SnippetORM"] = relationship(
+    snippet: Mapped[SnippetORM] = relationship(
         "SnippetORM",
         back_populates="public_urls",
         lazy="joined",
