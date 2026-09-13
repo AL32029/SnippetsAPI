@@ -1,7 +1,8 @@
 import uuid
+from collections.abc import Sequence
 from typing import cast
 
-from sqlalchemy import or_, select, update
+from sqlalchemy import ScalarResult, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager, selectinload
 
@@ -65,14 +66,14 @@ class SnippetsService:
         self,
         snippet_id: int,
         user_id: int,
-    ) -> None | bool:
+    ) -> bool:
         snippet = await self._get_snippet_by_id(
             snippet_id=snippet_id,
             user_id=user_id,
         )
 
         if snippet is None:
-            return None
+            return False
 
         await self.db.delete(snippet)
         await self.db.flush()
@@ -93,10 +94,10 @@ class SnippetsService:
     async def get_all_by_user(
         self,
         user_id: int,
-    ) -> list[SnippetORM]:
+    ) -> Sequence[SnippetORM]:
         stmt = select(SnippetORM).where(SnippetORM.user_id == user_id)
-        snippets = await self.db.scalars(stmt)
-        return cast(list["SnippetORM"], snippets.all())
+        snippets: ScalarResult[SnippetORM] = await self.db.scalars(stmt)
+        return snippets.all()
 
     async def generate_snippet_url(
         self,
@@ -149,7 +150,7 @@ class SnippetsService:
         self,
         user_id: int,
         url_uuid: uuid.UUID,
-    ) -> None | bool:
+    ) -> bool:
         snippet_url: SnippetURLORM | None = cast(
             "SnippetURLORM | None",
             await self._get_snippet_url_by_id(
@@ -160,7 +161,7 @@ class SnippetsService:
         )
 
         if snippet_url is None:
-            return None
+            return False
 
         await self.db.delete(snippet_url)
         await self.db.flush()

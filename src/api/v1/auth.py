@@ -1,5 +1,6 @@
 from typing import Annotated
 
+import asyncpg
 import sqlalchemy.exc
 from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends
@@ -32,10 +33,20 @@ async def register_user_endpoint(
             content={"response": "The user was successfully registered"},
         )
     except sqlalchemy.exc.IntegrityError as err:
-        raise HTTPException(
-            status_code=HTTP_409_CONFLICT,
-            detail="The specified email address is already taken",
-        ) from err
+        orig = err.orig
+        raw = getattr(orig, "asyncpg_error", None) or orig.__cause__
+
+        if (
+            isinstance(raw, asyncpg.exceptions.UniqueViolationError)
+            and raw.sqlstate.isdigit()
+            and int(raw.sqlstate) == 23505
+        ):
+            raise HTTPException(
+                status_code=HTTP_409_CONFLICT,
+                detail="The specified email address is already taken",
+            ) from err
+
+        raise
 
 
 @auth_router.post("/login", response_model=UserProfileSchema)

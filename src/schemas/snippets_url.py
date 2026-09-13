@@ -13,14 +13,14 @@ class SnippetURLSharingSchema(BaseModel):
 
 class SnippetURLSchema(BaseModel):
     id: uuid.UUID
-    snippet: SnippetInfoSchema | dict
+    snippet: SnippetInfoSchema | None = Field(None)
     is_public: bool
     views_count: int
 
     @field_validator("snippet", mode="before")
     @classmethod
-    def validate_snippet(cls, v: Any) -> SnippetInfoSchema | dict:
+    def validate_snippet(cls, v: Any) -> SnippetInfoSchema | None:
         if not v:
-            return {}
+            return None
 
         return v

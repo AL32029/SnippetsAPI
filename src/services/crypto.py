@@ -36,7 +36,9 @@ class CryptoService:
     ) -> str:
         to_encode = data.copy()
 
-        expire_to = (datetime.datetime.now(datetime.UTC) + expired_delta).timestamp()
+        expire_to = int(
+            (datetime.datetime.now(datetime.UTC) + expired_delta).timestamp()
+        )
         to_encode.update({"exp": expire_to})
 
         return jwt.encode(to_encode, self._jwt_secret_key, algorithm=self._algorithm)
@@ -56,4 +58,7 @@ class CryptoService:
 
     @staticmethod
     def verify_password(password: str, hashed: str) -> bool:
-        return bcrypt.checkpw(password.encode(), hashed.encode())
+        try:
+            return bcrypt.checkpw(password.encode(), hashed.encode())
+        except ValueError:
+            return False

@@ -26,6 +26,7 @@ class UserService:
         )
 
         self.db.add(user)
+        await self.db.flush()
 
     async def login(self, email: str, password: str) -> UserORM | None:
         stmt = select(UserORM).where(UserORM.email == email)

@@ -144,12 +144,12 @@ async def delete_snippet_endpoint(
     snippets_service: Annotated[SnippetsService, Depends(get_snippets_service)],
     snippet_id: int,
 ) -> Response:
-    snippet = await snippets_service.delete(
+    deleted = await snippets_service.delete(
         snippet_id=snippet_id,
         user_id=user.id,
     )
 
-    if snippet is None:
+    if not deleted:
         raise HTTPException(
             status_code=HTTP_404_NOT_FOUND,
             detail=f"The snippet with ID {snippet_id} was not found",
@@ -196,7 +196,7 @@ async def share_snippet_endpoint(
             code=snippet.code,
         )
         if url_info.return_snippet_info
-        else {},
+        else None,
         is_public=snippet_url.is_public,
         views_count=snippet_url.views_count,
     )
@@ -227,7 +227,7 @@ async def all_shared_urls_endpoint(
     return [
         SnippetURLSchema(
             id=url.id,
-            snippet={},
+            snippet=None,
             is_public=url.is_public,
             views_count=url.views_count,
         )
@@ -267,7 +267,7 @@ async def get_shared_url_info_endpoint(
             code=snippet_url.snippet.code,
         )
         if return_snippet_info
-        else {},
+        else None,
         is_public=snippet_url.is_public,
         views_count=snippet_url.views_count,
     )
@@ -336,7 +336,7 @@ async def update_snippet_url_endpoint(
             code=snippet_url.snippet.code,
         )
         if url_info.return_snippet_info
-        else {},
+        else None,
         is_public=snippet_url.is_public,
         views_count=snippet_url.views_count,
     )
@@ -351,12 +351,12 @@ async def delete_snippet_url_endpoint(
     snippets_service: Annotated[SnippetsService, Depends(get_snippets_service)],
     url_uuid: uuid.UUID,
 ) -> Response:
-    snippet = await snippets_service.delete_snippet_url(
+    deleted = await snippets_service.delete_snippet_url(
         url_uuid=url_uuid,
         user_id=user.id,
     )
 
-    if snippet is None:
+    if not deleted:
         raise HTTPException(
             status_code=HTTP_404_NOT_FOUND,
             detail=f"The public link {url_uuid} was not found",
