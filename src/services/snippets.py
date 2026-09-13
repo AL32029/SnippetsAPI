@@ -108,6 +108,7 @@ class SnippetsService:
         snippet = await self._get_snippet_by_id(
             snippet_id=snippet_id,
             user_id=user_id,
+            load_shared_urls=True,
         )
 
         if snippet is None:
@@ -132,7 +133,6 @@ class SnippetsService:
             await self._get_snippet_url_by_id(
                 url_uuid=url_uuid,
                 user_id=user_id,
-                return_info=True,
             ),
         )
 
@@ -156,7 +156,6 @@ class SnippetsService:
             await self._get_snippet_url_by_id(
                 url_uuid=url_uuid,
                 user_id=user_id,
-                return_info=True,
             ),
         )
 
@@ -177,7 +176,6 @@ class SnippetsService:
             await self._get_snippet_url_by_id(
                 url_uuid=url_uuid,
                 user_id=user_id,
-                return_info=True,
             ),
         )
 
@@ -189,11 +187,10 @@ class SnippetsService:
     ) -> SnippetORM | None:
         return cast(
             "SnippetORM | None",
-            await self._get_snippet_url_by_id(
+            await self._get_snippet_url_by_id_with_redirect(
                 url_uuid=url_uuid,
                 user_id=user_id,
                 with_inc_views_count=with_inc_views_count,
-                return_info=False,
             ),
         )
 
@@ -220,8 +217,7 @@ class SnippetsService:
         url_uuid: uuid.UUID,
         user_id: int | None = None,
         with_inc_views_count: bool = False,
-        return_info: bool = False,
-    ) -> SnippetORM | SnippetURLORM | None:
+    ) -> SnippetURLORM | None:
         ownership = (
             or_(
                 SnippetURLORM.is_public.is_(True),
@@ -258,4 +254,22 @@ class SnippetsService:
 
             await self.db.flush()
 
-        return url_info.snippet if not return_info else url_info
+        return url_info
+
+    async def _get_snippet_url_by_id_with_redirect(
+        self,
+        url_uuid: uuid.UUID,
+        user_id: int | None = None,
+        with_inc_views_count: bool = False,
+    ) -> SnippetORM | None:
+        snippet_url = await self._get_snippet_url_by_id(
+            url_uuid=url_uuid,
+            user_id=user_id,
+            with_inc_views_count=with_inc_views_count,
+        )
+
+        return (
+            cast("SnippetORM", cast(object, snippet_url.snippet))
+            if snippet_url is not None
+            else None
+        )

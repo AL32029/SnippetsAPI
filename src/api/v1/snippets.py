@@ -32,7 +32,7 @@ async def create_snippet_endpoint(
     snippets_service: Annotated[SnippetsService, Depends(get_snippets_service)],
     snippet_data: SnippetCreateSchema,
 ) -> SnippetInfoSchema:
-    snippet_uuid = await snippets_service.save(
+    snippet_id = await snippets_service.save(
         user_id=user.id,
         title=snippet_data.title,
         language=snippet_data.language,
@@ -40,7 +40,7 @@ async def create_snippet_endpoint(
     )
 
     return SnippetInfoSchema(
-        id=snippet_uuid,
+        id=snippet_id,
         author_id=user.id,
         title=snippet_data.title,
         language=snippet_data.language,
@@ -311,7 +311,7 @@ async def get_snippet_by_uuid_endpoint(
 async def update_snippet_url_endpoint(
     snippets_service: Annotated[SnippetsService, Depends(get_snippets_service)],
     url_uuid: uuid.UUID,
-    user: Annotated[UserORM, Depends(get_current_user_optional)],
+    user: Annotated[UserORM, Depends(get_current_user)],
     url_info: SnippetURLSharingSchema,
 ) -> SnippetURLSchema:
     snippet_url = await snippets_service.update_snippet_url(
