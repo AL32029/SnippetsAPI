@@ -1,9 +1,14 @@
 import uuid
 from typing import Any
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 from schemas.snippets import SnippetInfoSchema
+
+
+class SnippetURLSharingSchema(BaseModel):
+    is_public: bool
+    return_snippet_info: bool = Field(True)
 
 
 class SnippetURLSchema(BaseModel):

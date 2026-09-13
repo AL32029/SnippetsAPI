@@ -11,7 +11,7 @@ from schemas.snippets import (
     SnippetInfoSchema,
     SnippetUpdateSchema,
 )
-from schemas.snippets_url import SnippetURLSchema
+from schemas.snippets_url import SnippetURLSchema, SnippetURLSharingSchema
 from services.dependencies import (
     get_current_user,
     get_current_user_optional,
@@ -167,8 +167,7 @@ async def share_snippet_endpoint(
     user: Annotated[UserORM, Depends(get_current_user)],
     snippets_service: Annotated[SnippetsService, Depends(get_snippets_service)],
     snippet_id: int,
-    is_public: bool = True,
-    return_snippet_info: bool = True,
+    url_info: SnippetURLSharingSchema,
 ) -> SnippetURLSchema:
     snippet = await snippets_service.get_by_id_for_user(
         snippet_id=snippet_id,
@@ -184,7 +183,7 @@ async def share_snippet_endpoint(
     snippet_url = await snippets_service.generate_snippet_url(
         user_id=user.id,
         snippet_id=snippet.id,
-        is_public=is_public,
+        is_public=url_info.is_public,
     )
 
     return SnippetURLSchema(
@@ -196,7 +195,7 @@ async def share_snippet_endpoint(
             language=snippet.language,
             code=snippet.code,
         )
-        if return_snippet_info
+        if url_info.return_snippet_info
         else {},
         is_public=snippet_url.is_public,
         views_count=snippet_url.views_count,
@@ -232,7 +231,7 @@ async def all_shared_urls_endpoint(
             is_public=url.is_public,
             views_count=url.views_count,
         )
-        for url in snippet.public_urls
+        for url in snippet.shared_urls
     ]
 
 
@@ -244,7 +243,7 @@ async def all_shared_urls_endpoint(
 async def get_shared_url_info_endpoint(
     snippets_service: Annotated[SnippetsService, Depends(get_snippets_service)],
     url_uuid: uuid.UUID,
-    user: Annotated[UserORM | None, Depends(get_current_user)] = None,
+    user: Annotated[UserORM, Depends(get_current_user)],
     return_snippet_info: bool = True,
 ) -> SnippetURLSchema:
     snippet_url = await snippets_service.get_shared_url_info(
@@ -312,14 +311,13 @@ async def get_snippet_by_uuid_endpoint(
 async def update_snippet_url_endpoint(
     snippets_service: Annotated[SnippetsService, Depends(get_snippets_service)],
     url_uuid: uuid.UUID,
-    is_public: bool,
-    user: Annotated[UserORM | None, Depends(get_current_user)] = None,
-    return_snippet_info: bool = True,
+    user: Annotated[UserORM, Depends(get_current_user_optional)],
+    url_info: SnippetURLSharingSchema,
 ) -> SnippetURLSchema:
     snippet_url = await snippets_service.update_snippet_url(
         url_uuid=url_uuid,
         user_id=user.id,
-        is_public=is_public,
+        is_public=url_info.is_public,
     )
 
     if snippet_url is None:
@@ -337,7 +335,7 @@ async def update_snippet_url_endpoint(
             language=snippet_url.snippet.language,
             code=snippet_url.snippet.code,
         )
-        if return_snippet_info
+        if url_info.return_snippet_info
         else {},
         is_public=snippet_url.is_public,
         views_count=snippet_url.views_count,

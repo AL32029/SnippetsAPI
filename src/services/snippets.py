@@ -114,7 +114,7 @@ class SnippetsService:
 
         snippet_url = SnippetURLORM(is_public=is_public)
 
-        snippet.public_urls.append(snippet_url)
+        snippet.shared_urls.append(snippet_url)
 
         await self.db.flush()
 
@@ -208,7 +208,7 @@ class SnippetsService:
         )
 
         if load_shared_urls:
-            stmt = stmt.options(selectinload(SnippetORM.public_urls))
+            stmt = stmt.options(selectinload(SnippetORM.shared_urls))
 
         snippet: SnippetORM | None = await self.db.scalar(stmt)
 

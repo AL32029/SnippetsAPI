@@ -45,7 +45,7 @@ class SnippetORM(Base):
     code: Mapped[str] = mapped_column(Text)
 
     user: Mapped[UserORM] = relationship("UserORM", back_populates="snippets")
-    public_urls: Mapped[list[SnippetURLORM]] = relationship(
+    shared_urls: Mapped[list[SnippetURLORM]] = relationship(
         "SnippetURLORM",
         back_populates="snippet",
         lazy="noload",
@@ -80,6 +80,6 @@ class SnippetURLORM(Base):
 
     snippet: Mapped[SnippetORM] = relationship(
         "SnippetORM",
-        back_populates="public_urls",
+        back_populates="shared_urls",
         lazy="joined",
     )
