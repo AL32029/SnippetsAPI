@@ -5,11 +5,12 @@ from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.status import HTTP_401_UNAUTHORIZED
 
-from api.v1.oauth import oauth_bearer
+from api.v1.oauth import oauth_bearer, oauth_bearer_optional
 from core.crypto_settings import CryptoSettings, crypto_settings
 from db.dependencies import get_db
 from models.database import UserORM
 from services.crypto import CryptoService
+from services.snippets import SnippetsService
 from services.user import UserService
 
 
@@ -53,3 +54,36 @@ async def get_current_user(
         )
 
     return user
+
+
+async def get_current_user_optional(
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    crypto_service: Annotated[CryptoService, Depends(get_crypto_service)],
+    token: Annotated[str | None, Depends(oauth_bearer_optional)],
+) -> UserORM | None:
+    if token is None:
+        return None
+
+    user_data = await crypto_service.decode_access_token_async(token)
+
+    if user_data is None or "sub" not in user_data or not user_data["sub"]:
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="Invalid session token",
+        )
+
+    user = await user_service.get_by_email(user_data["sub"])
+
+    if user is None:
+        raise HTTPException(
+            status_code=HTTP_401_UNAUTHORIZED,
+            detail="Invalid session token",
+        )
+
+    return user
+
+
+def get_snippets_service(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> SnippetsService:
+    return SnippetsService(db=db)

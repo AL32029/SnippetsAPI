@@ -1,25 +1,210 @@
+import uuid
 from typing import Annotated
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from fastapi.params import Depends
+from starlette.status import HTTP_404_NOT_FOUND
 
 from models.database import UserORM
-from schemas.snippets import SnippetCreateSchema, SnippetInfoSchema
-from services.dependencies import get_current_user
+from schemas.snippets import SnippetCreateSchema, SnippetInfoSchema, SnippetURLSchema
+from services.dependencies import (
+    get_current_user,
+    get_current_user_optional,
+    get_snippets_service,
+)
+from services.snippets import SnippetsService
 
-snippets_router = APIRouter(prefix="/snippets", tags=["Snippets"])
+snippets_router = APIRouter(prefix="/snippets")
 
 
-@snippets_router.post("/create", response_model=SnippetInfoSchema)
+@snippets_router.post(
+    "/create",
+    response_model=SnippetInfoSchema,
+    tags=["Snippets Action"],
+)
 async def create_snippet_endpoint(
     user: Annotated[UserORM, Depends(get_current_user)],
+    snippets_service: Annotated[SnippetsService, Depends(get_snippets_service)],
     snippet_data: SnippetCreateSchema,
 ) -> SnippetInfoSchema:
-    # TODO: Реализовать создание сниппетов
-    pass
+    snippet_uuid = await snippets_service.save(
+        author_id=user.id,
+        title=snippet_data.title,
+        language=snippet_data.language,
+        code=snippet_data.code,
+    )
+
+    return SnippetInfoSchema(
+        id=snippet_uuid,
+        author_id=user.id,
+        title=snippet_data.title,
+        language=snippet_data.language,
+        code=snippet_data.code,
+    )
 
 
-# TODO: Добавить эндпоинт генерации ссылки для доступа к сниппету
-# TODO: Добавить эндпоинт для получения списка сниппетов
+@snippets_router.get(
+    "/list",
+    response_model=list[SnippetInfoSchema],
+    tags=["Snippets Action"],
+)
+async def all_user_snippets_endpoint(
+    user: Annotated[UserORM, Depends(get_current_user)],
+    snippets_service: Annotated[SnippetsService, Depends(get_snippets_service)],
+) -> list[SnippetInfoSchema]:
+    snippets = await snippets_service.get_all_by_user(user_id=user.id)
+
+    return [
+        SnippetInfoSchema(
+            id=snippet.id,
+            author_id=snippet.user_id,
+            title=snippet.title,
+            language=snippet.language,
+            code=snippet.code,
+        )
+        for snippet in snippets
+    ]
+
+
+@snippets_router.get(
+    "/{snippet_id}",
+    response_model=SnippetInfoSchema,
+    tags=["Snippets Action"],
+)
+async def snippet_info_endpoint(
+    user: Annotated[UserORM, Depends(get_current_user)],
+    snippets_service: Annotated[SnippetsService, Depends(get_snippets_service)],
+    snippet_id: int,
+) -> SnippetInfoSchema:
+    snippet = await snippets_service.get_by_id_for_user(
+        snippet_id=snippet_id,
+        user_id=user.id,
+    )
+
+    if snippet is None:
+        raise HTTPException(
+            status_code=HTTP_404_NOT_FOUND,
+            detail=f"The snippet with ID {snippet_id} was not found",
+        )
+
+    return SnippetInfoSchema(
+        id=snippet.id,
+        author_id=snippet.user_id,
+        title=snippet.title,
+        language=snippet.language,
+        code=snippet.code,
+    )
+
+
+# TODO: Добавить эндпоинт для изменения сниппетов
 # TODO: Добавить эндпоинт для удаления сниппетов
-# TODO: Добавить эндпоинт для просмотра сниппетов по UUID
+
+
+@snippets_router.post(
+    "/{snippet_id}/share",
+    response_model=SnippetURLSchema,
+    tags=["Snippets Action"],
+)
+async def share_snippet_endpoint(
+    user: Annotated[UserORM, Depends(get_current_user)],
+    snippets_service: Annotated[SnippetsService, Depends(get_snippets_service)],
+    snippet_id: int,
+    is_public: bool = True,
+    return_snippet_info: bool = True,
+) -> SnippetURLSchema:
+    snippet = await snippets_service.get_by_id_for_user(
+        snippet_id=snippet_id,
+        user_id=user.id,
+    )
+
+    if snippet is None:
+        raise HTTPException(
+            status_code=HTTP_404_NOT_FOUND,
+            detail=f"The snippet with ID {snippet_id} was not found",
+        )
+
+    snippet_url = await snippets_service.generate_snippet_url(
+        snippet_id=snippet.id, is_public=is_public
+    )
+
+    return SnippetURLSchema(
+        id=snippet_url.id,
+        snippet=SnippetInfoSchema(
+            id=snippet.id,
+            author_id=snippet.user_id,
+            title=snippet.title,
+            language=snippet.language,
+            code=snippet.code,
+        )
+        if return_snippet_info
+        else {},
+        is_public=snippet_url.is_public,
+        views_count=snippet_url.views_count,
+    )
+
+
+@snippets_router.get(
+    "/{snippet_id}/shared_urls",
+    response_model=list[SnippetURLSchema],
+    tags=["Snippets Shared URLs"],
+)
+async def all_shared_urls_endpoint(
+    user: Annotated[UserORM, Depends(get_current_user)],
+    snippets_service: Annotated[SnippetsService, Depends(get_snippets_service)],
+    snippet_id: int,
+) -> list["SnippetURLSchema"]:
+    snippet = await snippets_service.get_by_id_for_user(
+        snippet_id=snippet_id,
+        user_id=user.id,
+        load_public_urls=True,
+    )
+
+    if snippet is None:
+        raise HTTPException(
+            status_code=HTTP_404_NOT_FOUND,
+            detail=f"The snippet with ID {snippet_id} was not found",
+        )
+
+    return [
+        SnippetURLSchema(
+            id=url.id,
+            snippet={},
+            is_public=url.is_public,
+            views_count=url.views_count,
+        )
+        for url in snippet.public_urls
+    ]
+
+
+@snippets_router.get(
+    "/shared/{url_uuid}",
+    response_model=SnippetInfoSchema,
+    tags=["Snippets Shared URLs"],
+)
+async def get_snippet_by_uuid_endpoint(
+    snippets_service: Annotated[SnippetsService, Depends(get_snippets_service)],
+    url_uuid: uuid.UUID,
+    user: Annotated[UserORM | None, Depends(get_current_user_optional)] = None,
+) -> SnippetInfoSchema:
+    snippet = await snippets_service.get_by_shared_url(
+        url_uuid=url_uuid,
+        user_id=user.id if user is not None else None,
+    )
+
+    if snippet is None:
+        raise HTTPException(
+            status_code=HTTP_404_NOT_FOUND,
+            detail=f"The snippet for the public link {url_uuid} was not found",
+        )
+
+    return SnippetInfoSchema(
+        id=snippet.id,
+        author_id=snippet.user_id,
+        title=snippet.title,
+        language=snippet.language,
+        code=snippet.code,
+    )
+
+
+# TODO: Добавить эндпоинт для изменения публичной ссылки
+# TODO: Добавить эндпоинт для удаления публичной ссылки

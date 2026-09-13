@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from api import auth_router, snippets_router
 from db.engine import engine
 
-# TODO: Добавить в src.services сервис для сниппетов
+# [MISC][INPROGRESS] Добавить в src.services сервис для сниппетов
 # TODO: Реализовать тесты для системы на базе pytest (не менее 70% покрытия кода тестами)
 
 
