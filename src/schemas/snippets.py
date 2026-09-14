@@ -19,5 +19,3 @@ class SnippetInfoSchema(BaseModel):
     title: str
     language: str
     code: str
-
-

@@ -1,3 +1,4 @@
+import logging
 from functools import lru_cache
 from typing import Annotated
 
@@ -12,6 +13,8 @@ from models.database import UserORM
 from services.crypto import CryptoService
 from services.snippets import SnippetsService
 from services.user import UserService
+
+logger = logging.getLogger(__name__)
 
 
 @lru_cache
@@ -62,20 +65,26 @@ async def _get_user_by_token(
     crypto_service: CryptoService,
     token: str,
 ) -> UserORM:
+    logger.debug("Extracting user information from a JWT token")
     user_data = await crypto_service.decode_access_token_async(token)
 
     if user_data is None or "sub" not in user_data or not user_data["sub"]:
+        logger.warning("The transmitted JWT token is invalid, access is denied")
         raise HTTPException(
             status_code=HTTP_401_UNAUTHORIZED,
             detail="Invalid session token",
         )
 
+    logger.debug("Obtaining user information from the database")
     user = await user_service.get_by_email(user_data["sub"])
 
     if user is None:
+        logger.warning("The user was not found in the database, access denied")
         raise HTTPException(
             status_code=HTTP_401_UNAUTHORIZED,
             detail="Invalid session token",
         )
+
+    logger.debug("The user has been successfully authorized")
 
     return user
