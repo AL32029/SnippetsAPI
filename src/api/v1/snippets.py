@@ -246,7 +246,7 @@ async def get_shared_url_info_endpoint(
     user: Annotated[UserORM, Depends(get_current_user)],
     return_snippet_info: bool = True,
 ) -> SnippetURLSchema:
-    snippet_url = await snippets_service.get_shared_url_info(
+    snippet_url = await snippets_service.get_url_info_by_uuid(
         url_uuid=url_uuid,
         user_id=user.id,
     )
@@ -283,7 +283,7 @@ async def get_snippet_by_uuid_endpoint(
     url_uuid: uuid.UUID,
     user: Annotated[UserORM | None, Depends(get_current_user_optional)] = None,
 ) -> SnippetInfoSchema:
-    snippet = await snippets_service.get_by_shared_url(
+    snippet = await snippets_service.get_snippet_by_url_uuid(
         url_uuid=url_uuid,
         user_id=user.id if user is not None else None,
     )
