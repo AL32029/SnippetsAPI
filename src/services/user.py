@@ -1,4 +1,5 @@
 import logging
+from typing import cast
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,10 +37,15 @@ class UserService:
         logger.debug("The user data has been sent to the database")
 
     async def login(self, email: str, password: str) -> UserORM | None:
-        user = await self._get_user_by_email(email)
+        stmt = select(UserORM).where(UserORM.email == email)
+        logger.debug("Requesting user data from the database")
+        user = await self.db.scalar(stmt)
 
         if user is None:
+            logger.warning("The requested user is not in the database")
             return None
+
+        logger.debug("The requested user has been found in the database")
 
         if not await self.crypto.verify_password_async(password, user.password_hash):
             logger.warning(
@@ -55,17 +61,17 @@ class UserService:
 
         return user
 
-    async def get_by_email(self, email: str) -> UserORM | None:
-        return await self._get_user_by_email(email)
-
-    async def _get_user_by_email(self, email: str) -> UserORM | None:
-        stmt = select(UserORM).where(UserORM.email == email)
+    async def get_by_id(self, user_id: str) -> UserORM | None:
         logger.debug("Requesting user data from the database")
-        user = await self.db.scalar(stmt)
+        user: UserORM | None = cast(
+            "UserORM | None",
+            await self.db.get(UserORM, int(user_id) if user_id.isdigit() else user_id),
+        )
 
         if user is None:
             logger.warning("The requested user is not in the database")
-        else:
-            logger.debug("The requested user has been found in the database")
+            return None
+
+        logger.debug("The requested user has been found in the database")
 
         return user

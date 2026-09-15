@@ -88,6 +88,6 @@ async def token_endpoint(
             detail="Incorrect login or password",
         )
     access_token = await crypto_service.create_access_token_async(
-        data={"sub": user.email}
+        data={"sub": str(user.id)}
     )
     return {"access_token": access_token, "token_type": "bearer"}

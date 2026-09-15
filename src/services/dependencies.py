@@ -76,7 +76,7 @@ async def _get_user_by_token(
         )
 
     logger.debug("Obtaining user information from the database")
-    user = await user_service.get_by_email(user_data["sub"])
+    user = await user_service.get_by_id(user_data["sub"])
 
     if user is None:
         logger.warning("The user was not found in the database, access denied")
