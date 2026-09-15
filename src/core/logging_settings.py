@@ -10,7 +10,12 @@ from pydantic_settings import (
 
 
 class LoggingSettings(BaseSettings):
-    model_config = SettingsConfigDict(json_file=os.getenv("LOGGING_SETTINGS_PATH"))
+    model_config = SettingsConfigDict(
+        json_file=os.getenv(
+            "LOGGING_SETTINGS_PATH",
+            "/etc/container_app/logging.json",
+        )
+    )
 
     version: int = 1
     disable_existing_loggers: bool = Field(False)

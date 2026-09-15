@@ -62,10 +62,13 @@ class UserService:
         return user
 
     async def get_by_id(self, user_id: str) -> UserORM | None:
+        if not user_id.isdigit():
+            logger.warning("The passed user_id is not a number")
+            return None
+
         logger.debug("Requesting user data from the database")
         user: UserORM | None = cast(
-            "UserORM | None",
-            await self.db.get(UserORM, int(user_id) if user_id.isdigit() else user_id),
+            "UserORM | None", await self.db.get(UserORM, int(user_id))
         )
 
         if user is None:
